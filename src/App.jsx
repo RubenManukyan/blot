@@ -76,6 +76,10 @@ function App() {
     }
 
     const configuredUrl = import.meta.env.VITE_GAME_SERVER_URL
+    if (import.meta.env.PROD && !configuredUrl) {
+      setOnlineNotice('Online multiplayer is not configured on this site. A game server is required.')
+      return
+    }
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
     const url = configuredUrl || `${protocol}//${window.location.hostname}:3001`
     const socket = new WebSocket(url)

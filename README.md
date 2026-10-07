@@ -15,7 +15,7 @@ This project is configured to deploy the built static site to GitHub Pages.
 
 - The Vite base path is set to `/blot/` in GitHub Actions so the app loads correctly from `https://rubenmanukyan.github.io/blot/`
 - The workflow in `.github/workflows/deploy.yml` builds the site and publishes the `dist/` folder to the GitHub Pages environment
-- Online multiplayer still requires a WebSocket server and can be configured with `VITE_GAME_SERVER_URL` when the site is deployed
+- Online multiplayer requires a separately hosted WebSocket server. Set `VITE_GAME_SERVER_URL` in the GitHub Actions build environment to its `wss://` URL; without it, the online lobby displays that multiplayer is unavailable.
 
 To enable Pages in GitHub:
 
