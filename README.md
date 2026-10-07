@@ -1,16 +1,31 @@
-# React + Vite
+# Blot
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A card game website built with React and Vite.
 
-Currently, two official plugins are available:
+## Local development
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+```bash
+npm install
+npm run dev
+```
 
-## React Compiler
+## GitHub Pages deployment
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+This project is configured to deploy the built static site to GitHub Pages.
 
-## Expanding the ESLint configuration
+- The Vite base path is set to `/blot/` in GitHub Actions so the app loads correctly from `https://rubenmanukyan.github.io/blot/`
+- The workflow in `.github/workflows/deploy.yml` builds the site and publishes the `dist/` folder to the GitHub Pages environment
+- Online multiplayer still requires a WebSocket server and can be configured with `VITE_GAME_SERVER_URL` when the site is deployed
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+To enable Pages in GitHub:
+
+1. Open the repository on GitHub
+2. Go to Settings > Pages
+3. Set the source to "GitHub Actions"
+4. Push to the `main` branch to trigger a deployment
+
+## Production build
+
+```bash
+npm run build
+```

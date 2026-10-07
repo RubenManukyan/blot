@@ -1,7 +1,9 @@
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 
-// https://vite.dev/config/
+const isGithubPages = process.env.GITHUB_ACTIONS === 'true'
+
 export default defineConfig({
+  base: isGithubPages ? '/blot/' : '/',
   plugins: [react()],
 })
