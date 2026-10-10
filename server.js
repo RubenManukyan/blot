@@ -1,9 +1,19 @@
 import { WebSocketServer, WebSocket } from 'ws'
+import { createServer } from 'node:http'
 import process from 'node:process'
 import { createMatch, playCard, startNextRound, submitBid, takeAiTurn } from './src/game/gameEngine.js'
 
-const port = Number(process.env.GAME_SERVER_PORT || 3001)
-const server = new WebSocketServer({ host: '0.0.0.0', port })
+const port = Number(process.env.PORT || process.env.GAME_SERVER_PORT || 3001)
+const httpServer = createServer((request, response) => {
+  if (request.method === 'GET' && request.url === '/health') {
+    response.writeHead(200, { 'content-type': 'application/json' })
+    response.end(JSON.stringify({ status: 'ok' }))
+    return
+  }
+  response.writeHead(404)
+  response.end()
+})
+const server = new WebSocketServer({ server: httpServer })
 const rooms = new Map()
 const codeAlphabet = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ'
 
@@ -217,4 +227,6 @@ server.on('connection', (socket) => {
   socket.on('close', () => detach(client))
 })
 
-console.log(`Bazar Blot game server listening on ws://0.0.0.0:${port}`)
+httpServer.listen(port, '0.0.0.0', () => {
+  console.log(`Bazar Blot game server listening on port ${port}`)
+})
