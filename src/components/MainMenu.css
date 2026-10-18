@@ -267,6 +267,20 @@
   gap: 8px;
 }
 
+.online-entry-actions-join {
+  grid-template-columns: 1fr;
+}
+
+.online-entry-actions-join .online-join-row {
+  flex-direction: column;
+}
+
+.online-entry-actions-join .online-join-row > .online-join-button {
+  min-height: 58px;
+  font-size: 14px;
+  box-shadow: 0 8px 24px rgba(213, 177, 107, 0.2);
+}
+
 .room-code-input {
   min-width: 0;
   letter-spacing: 1.4px;

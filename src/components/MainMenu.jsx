@@ -10,6 +10,7 @@ function OnlinePage({ lobby, notice, onCreate, onJoin, onStart, onLeave }) {
   const [name, setName] = useState(() => localStorage.getItem('blot-player-name') || '')
   const [roomCode, setRoomCode] = useState(() => new URLSearchParams(window.location.search).get('room')?.trim().toUpperCase() || '')
   const [linkCopied, setLinkCopied] = useState(false)
+  const hasRoomCode = roomCode.trim().length === 6
 
   function saveName() {
     const cleanName = name.trim().slice(0, 16) || 'Player'
@@ -43,16 +44,17 @@ function OnlinePage({ lobby, notice, onCreate, onJoin, onStart, onLeave }) {
   )
 
   return (
-    <section className="info-panel online-panel">
+    <section className={`info-panel online-panel${hasRoomCode ? ' online-panel-join' : ''}`}>
       <span className="eyebrow">ONLINE TABLE</span>
       <h1>Play online</h1>
       <p className="info-lead">Take a seat with friends and play a live match.</p>
       <label className="online-field-label" htmlFor="online-player-name">PLAYER NAME</label>
       <input id="online-player-name" className="online-input" value={name} maxLength={16} placeholder="Your name" onChange={(event) => setName(event.target.value)} />
       {notice && <p className="online-error" role="alert">{notice}</p>}
-      <div className="online-entry-actions">
-        <button type="button" className="button button-gold" onClick={() => onCreate(saveName())}>Create a room <span>↗</span></button>
-        <div className="online-join-row"><input className="online-input room-code-input" value={roomCode} maxLength={6} placeholder="ROOM CODE" aria-label="Room code" onChange={(event) => setRoomCode(event.target.value.toUpperCase())} /><button type="button" className="button button-quiet" disabled={roomCode.trim().length !== 6} onClick={() => onJoin(saveName(), roomCode)}>{roomCode ? 'Join linked room' : 'Join room'}</button></div>
+      <div className={`online-entry-actions${hasRoomCode ? ' online-entry-actions-join' : ''}`}>
+        {!hasRoomCode && <button type="button" className="button button-gold" onClick={() => onCreate(saveName())}>Create a room <span>↗</span></button>}
+        <div className="online-join-row"><input className="online-input room-code-input" value={roomCode} maxLength={6} placeholder="ROOM CODE" aria-label="Room code" onChange={(event) => setRoomCode(event.target.value.toUpperCase())} /><button type="button" className={`button ${hasRoomCode ? 'button-gold online-join-button' : 'button-quiet'}`} disabled={!hasRoomCode} onClick={() => onJoin(saveName(), roomCode)}>{hasRoomCode ? 'Join this game' : roomCode ? 'Join linked room' : 'Join room'}{hasRoomCode && <span>↗</span>}</button></div>
+        {hasRoomCode && <button type="button" className="button button-quiet" onClick={() => onCreate(saveName())}>Create a different room</button>}
       </div>
       <button type="button" className="button button-quiet back-button" onClick={onLeave}>← Back to table</button>
     </section>
