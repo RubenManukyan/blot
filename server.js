@@ -15,6 +15,7 @@ const httpServer = createServer((request, response) => {
 })
 const server = new WebSocketServer({ server: httpServer })
 const rooms = new Map()
+const matchmakingQueue = []
 const codeAlphabet = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ'
 
 function send(socket, message) {
@@ -51,6 +52,10 @@ function sendLobby(room) {
       seats: room.seats.map((player, seatIndex) => player ? { index: seatIndex, name: player.name, connected: Boolean(player.client) } : null),
     })
   })
+}
+
+function broadcastQueueStatus() {
+  matchmakingQueue.forEach((client) => send(client.socket, { type: 'matchmaking', status: 'waiting', waiting: matchmakingQueue.length }))
 }
 
 function matchForSeat(room, seat) {
@@ -111,11 +116,29 @@ function beginMatch(room) {
   queueAiTurn(room)
 }
 
+function startQueuedMatch() {
+  const clients = matchmakingQueue.splice(0, 4)
+  const room = { code: makeRoomCode(), seats: [null, null, null, null], hostSeat: 0, state: null, aiTimer: null }
+  rooms.set(room.code, room)
+  clients.forEach((client, seat) => {
+    client.matchmaking = false
+    addRoomPlayer(room, client, seat, client.playerName)
+  })
+  beginMatch(room)
+  broadcastQueueStatus()
+}
+
 function sendError(client, message) {
   send(client.socket, { type: 'error', message })
 }
 
 function detach(client) {
+  if (client.matchmaking) {
+    const queueIndex = matchmakingQueue.indexOf(client)
+    if (queueIndex >= 0) matchmakingQueue.splice(queueIndex, 1)
+    client.matchmaking = false
+    broadcastQueueStatus()
+  }
   const room = rooms.get(client.roomCode)
   if (!room || client.seat === null) return
   const seat = room.seats[client.seat]
@@ -164,6 +187,28 @@ function handleMessage(client, message) {
     return
   }
 
+  if (message.type === 'find_match') {
+    if (client.roomCode) return sendError(client, 'Leave your current room before searching for players.')
+    if (client.matchmaking) return send(client.socket, { type: 'matchmaking', status: 'waiting', waiting: matchmakingQueue.length })
+    client.playerName = cleanName(message.name)
+    client.matchmaking = true
+    matchmakingQueue.push(client)
+    if (matchmakingQueue.length === 4) startQueuedMatch()
+    else broadcastQueueStatus()
+    return
+  }
+
+  if (message.type === 'cancel_match') {
+    if (client.matchmaking) {
+      const queueIndex = matchmakingQueue.indexOf(client)
+      if (queueIndex >= 0) matchmakingQueue.splice(queueIndex, 1)
+      client.matchmaking = false
+      send(client.socket, { type: 'matchmaking', status: 'cancelled', waiting: matchmakingQueue.length })
+      broadcastQueueStatus()
+    }
+    return
+  }
+
   const room = rooms.get(client.roomCode)
   if (!room || room.seats[client.seat]?.client !== client) return sendError(client, 'Join a room before taking that action.')
 
@@ -209,7 +254,7 @@ function handleMessage(client, message) {
 }
 
 server.on('connection', (socket) => {
-  const client = { socket, roomCode: null, seat: null }
+  const client = { socket, roomCode: null, seat: null, matchmaking: false, playerName: 'Player' }
   socket.on('message', (payload) => {
     let message
     try {

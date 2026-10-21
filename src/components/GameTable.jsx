@@ -4,7 +4,34 @@ import Player from './Player.jsx'
 import PlayingCard from './PlayingCard.jsx'
 import Scoreboard from './Scoreboard.jsx'
 import { legalCardsForTurn } from '../game/gameEngine.js'
-import { SUIT_SYMBOLS, winningPlay } from '../game/rules.js'
+import { cardStrength, SUIT_NAMES, SUIT_SYMBOLS, winningPlay } from '../game/rules.js'
+
+function describePlayGuide(state, playerIndex) {
+  if (state.turn !== playerIndex) return `${state.players[state.turn].name} is playing. Watch the trick, then the guide will update for your turn.`
+  const hand = state.players[playerIndex].hand
+  const trick = state.trickComplete ? [] : state.trick
+  if (!trick.length) return 'You are leading. Any card is legal; the suit you choose starts the trick.'
+
+  const leadSuit = trick[0].card.suit
+  if (hand.some((card) => card.suit === leadSuit)) return `Follow ${SUIT_NAMES[leadSuit]} if you can. The highlighted cards are the ones you may play.`
+
+  const trumps = hand.filter((card) => card.suit === state.trump)
+  if (!trumps.length) return `You have no ${SUIT_NAMES[state.trump]} trump cards, so any card is legal.`
+
+  const currentWinner = winningPlay(trick, state.trump)
+  if (state.players[currentWinner.playerIndex].team === state.players[playerIndex].team) {
+    return 'Your partner is winning this trick. You may play any card; consider saving your trump cards.'
+  }
+
+  if (currentWinner.card.suit === state.trump) {
+    const canOvertrump = trumps.some((card) => cardStrength(card, state.trump) > cardStrength(currentWinner.card, state.trump))
+    return canOvertrump
+      ? 'An opponent is winning with trump. You must play a higher trump if you can.'
+      : 'An opponent is winning with trump. You must play a trump, but none can beat it.'
+  }
+
+  return 'An opponent is winning and you have trump. You must play a trump card.'
+}
 
 function TrickCard({ play, trump, current, position, name }) {
   if (!play) return null
@@ -33,6 +60,7 @@ function RoundSummary({ state, playerIndex, canManageRoom, onNewRound, onRestart
 
 export default function GameTable({ state, notice, soundEnabled, playerIndex = 0, roomCode, isOnline = false, isHost = true, onToggleSound, onNavigateHome, onBid, onPlay, onNewRound, onRestart }) {
   const [selectedId, setSelectedId] = useState(null)
+  const [guideOpen, setGuideOpen] = useState(false)
   const humanTurn = state.phase === 'play' && state.turn === playerIndex
   const legalIds = humanTurn ? new Set(legalCardsForTurn(state, playerIndex).map((card) => card.id)) : new Set()
   const human = state.players[playerIndex]
@@ -77,8 +105,17 @@ export default function GameTable({ state, notice, soundEnabled, playerIndex = 0
         {playedCards.length > 0 && <section className="played-history" aria-label="Cards already played"><span className="eyebrow">PLAYED · {playedCards.length}/32</span><div>{playedCards.map((play, index) => <span key={`${play.card.id}-${index}`} className={`played-card${play.card.suit === 'hearts' || play.card.suit === 'diamonds' ? ' played-red' : ''}`} title={`${play.card.rank} of ${play.card.suit}`}>{play.card.rank}{SUIT_SYMBOLS[play.card.suit]}</span>)}</div></section>}
         {state.phase === 'bidding' && <BiddingPanel state={state} playerIndex={playerIndex} onBid={onBid} />}
         {(state.phase === 'play' || state.phase === 'bidding') && <section className="hand-area" aria-label="Your hand">
-          <div className="hand-heading"><div><span className="eyebrow">YOUR HAND</span><span className="cards-left">{human.hand.length} cards</span></div><div className="hand-instruction">{humanTurn ? 'Select a card, then play it' : state.phase === 'bidding' ? 'Your cards are visible only to you' : `${state.players[state.turn].name} is playing…`}</div></div>
-          <div className="hand-cards">{human.hand.map((card) => <PlayingCard key={card.id} card={card} selected={selectedId === card.id} disabled={!humanTurn} onClick={() => selectCard(card.id)} />)}</div>
+          <div className="hand-heading"><div><span className="eyebrow">YOUR HAND</span><span className="cards-left">{human.hand.length} cards</span></div><div className="hand-heading-actions"><div className="hand-instruction">{humanTurn ? 'Select a card, then play it' : state.phase === 'bidding' ? 'Your cards are visible only to you' : `${state.players[state.turn].name} is playing…`}</div><button type="button" className="guide-toggle" aria-expanded={guideOpen} aria-controls="gameplay-guide" onClick={() => setGuideOpen((open) => !open)}>{guideOpen ? 'Hide guide' : 'How to play'}</button></div></div>
+          {guideOpen && <div className="gameplay-guide" id="gameplay-guide" role="region" aria-label="How to play">
+            <span className="guide-label">{state.phase === 'bidding' ? 'BIDDING' : humanTurn ? 'YOUR PLAY' : 'NEXT TURN'}</span>
+            <p>{state.phase === 'bidding'
+              ? state.bidding.turn === playerIndex
+                ? 'Choose a trump suit and bid the points your team expects to score. Pass if you do not want to bid.'
+                : `${state.players[state.bidding.turn].name} is bidding. The highest bid sets the contract and trump suit.`
+              : describePlayGuide(state, playerIndex)}</p>
+            {humanTurn && <small>Highlighted cards are legal plays right now.</small>}
+          </div>}
+          <div className="hand-cards">{human.hand.map((card) => <PlayingCard key={card.id} card={card} selected={selectedId === card.id} hinted={guideOpen && legalIds.has(card.id)} disabled={!humanTurn} onClick={() => selectCard(card.id)} />)}</div>
           <div className="hand-footer"><span className={`card-validation${notice ? ' validation-error' : ''}`} role="status">{notice || (selectedId && !legalIds.has(selectedId) ? 'You must follow suit or trump when required.' : humanTurn ? 'Your play is ready.' : state.phase === 'bidding' ? 'Choose a contract or pass.' : 'Waiting for your turn.')}</span>{state.phase === 'play' && <button type="button" className="button button-gold play-card-button" disabled={!humanTurn || !selectedId} onClick={() => { if (selectedId) onPlay(selectedId); setSelectedId(null) }}>Play card <span>↗</span></button>}</div>
         </section>}
         <footer className="table-footer"><span>PLAYING PARTNERSHIP BLOT</span><span>{state.players.filter((player) => player.team === 0).map((player) => player.name).join(' & ')} <i /> {state.players.filter((player) => player.team === 1).map((player) => player.name).join(' & ')}</span><span>FIRST TO 501</span></footer>

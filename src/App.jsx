@@ -11,6 +11,7 @@ function App() {
   const [soundEnabled, setSoundEnabled] = useState(() => localStorage.getItem('blot-sound') !== 'off')
   const [notice, setNotice] = useState('')
   const [onlineLobby, setOnlineLobby] = useState(null)
+  const [onlineQueue, setOnlineQueue] = useState(null)
   const [onlineRoom, setOnlineRoom] = useState(null)
   const [onlineSeat, setOnlineSeat] = useState(0)
   const [onlineNotice, setOnlineNotice] = useState('')
@@ -101,13 +102,19 @@ function App() {
           setOnlineNotice('')
           setView('online')
         }
+      } else if (message.type === 'matchmaking') {
+        setOnlineQueue(message.status === 'waiting' ? message : null)
+        setOnlineNotice('')
+        setView('online')
       } else if (message.type === 'match') {
+        setOnlineQueue(null)
         setOnlineRoom(message.roomCode)
         setOnlineSeat(message.seat)
         setMatch(message.match)
         setNotice('')
         setView('game')
       } else if (message.type === 'error') {
+        setOnlineQueue(null)
         setOnlineNotice(message.message)
         setNotice(message.message)
       } else if (message.type === 'left_room') {
@@ -119,7 +126,10 @@ function App() {
     })
     socket.addEventListener('error', () => setOnlineNotice('Could not connect to the game server.'))
     socket.addEventListener('close', () => {
-      if (socketRef.current === socket) setOnlineNotice('Connection to the game server was lost.')
+      if (socketRef.current === socket) {
+        setOnlineQueue(null)
+        setOnlineNotice('Connection to the game server was lost.')
+      }
     })
   }
 
@@ -132,9 +142,10 @@ function App() {
   }
 
   function leaveOnline() {
-    if (socketRef.current?.readyState === WebSocket.OPEN) sendOnline({ type: 'leave_room' })
+    if (socketRef.current?.readyState === WebSocket.OPEN) sendOnline({ type: onlineQueue ? 'cancel_match' : 'leave_room' })
     else socketRef.current?.close()
     setOnlineLobby(null)
+    setOnlineQueue(null)
     setOnlineRoom(null)
     setMatch(null)
     setOnlineNotice('')
@@ -170,12 +181,15 @@ function App() {
       view={view}
       soundEnabled={soundEnabled}
       onlineLobby={onlineLobby}
+      onlineQueue={onlineQueue}
       onlineNotice={onlineNotice}
       onNavigate={(nextView) => { setOnlineNotice(''); setView(nextView) }}
       onStart={startGame}
       onToggleSound={toggleSound}
       onCreateOnline={(name) => connectOnline({ type: 'create_room', name })}
       onJoinOnline={(name, roomCode) => connectOnline({ type: 'join_room', name, roomCode })}
+      onFindMatch={(name) => connectOnline({ type: 'find_match', name })}
+      onCancelMatch={() => sendOnline({ type: 'cancel_match' })}
       onStartOnline={() => sendOnline({ type: 'start_game' })}
       onLeaveOnline={leaveOnline}
     />

@@ -6,7 +6,7 @@ function Brand({ small = false }) {
   return <div className={`brand-lockup${small ? ' brand-small' : ''}`}><span className="brand-mark">Բ</span><span><strong>BAZAR BLOT</strong><small>ARMENIAN CARD GAME</small></span></div>
 }
 
-function OnlinePage({ lobby, notice, onCreate, onJoin, onStart, onLeave }) {
+function OnlinePage({ lobby, queue, notice, onCreate, onJoin, onFindMatch, onCancelMatch, onStart, onLeave }) {
   const [name, setName] = useState(() => localStorage.getItem('blot-player-name') || '')
   const [roomCode, setRoomCode] = useState(() => new URLSearchParams(window.location.search).get('room')?.trim().toUpperCase() || '')
   const [linkCopied, setLinkCopied] = useState(false)
@@ -43,14 +43,32 @@ function OnlinePage({ lobby, notice, onCreate, onJoin, onStart, onLeave }) {
     </section>
   )
 
+  if (queue) return (
+    <section className="info-panel online-panel matchmaking-panel" aria-live="polite">
+      <span className="eyebrow">WORLDWIDE MATCHMAKING</span>
+      <h1>Finding players</h1>
+      <p className="info-lead">Your table starts automatically when four players are ready.</p>
+      <div className="matchmaking-status">
+        <span className="matchmaking-count">{queue.waiting} <small>/ 4 PLAYERS</small></span>
+        <div className="matchmaking-seats" aria-label={`${queue.waiting} of 4 players found`}>
+          {[0, 1, 2, 3].map((seat) => <span key={seat} className={seat < queue.waiting ? 'matchmaking-seat-filled' : ''} />)}
+        </div>
+        <p>Keep this page open while we find other people to play with.</p>
+      </div>
+      {notice && <p className="online-error" role="alert">{notice}</p>}
+      <button type="button" className="button button-quiet back-button" onClick={onCancelMatch}>Cancel search</button>
+    </section>
+  )
+
   return (
     <section className={`info-panel online-panel${hasRoomCode ? ' online-panel-join' : ''}`}>
       <span className="eyebrow">ONLINE TABLE</span>
       <h1>Play online</h1>
-      <p className="info-lead">Take a seat with friends and play a live match.</p>
+      <p className="info-lead">Find players around the world or invite friends to a private table.</p>
       <label className="online-field-label" htmlFor="online-player-name">PLAYER NAME</label>
       <input id="online-player-name" className="online-input" value={name} maxLength={16} placeholder="Your name" onChange={(event) => setName(event.target.value)} />
       {notice && <p className="online-error" role="alert">{notice}</p>}
+      <button type="button" className="button button-gold online-find-button" onClick={() => onFindMatch(saveName())}>Find players <span>↗</span></button>
       <div className={`online-entry-actions${hasRoomCode ? ' online-entry-actions-join' : ''}`}>
         {!hasRoomCode && <button type="button" className="button button-gold" onClick={() => onCreate(saveName())}>Create a room <span>↗</span></button>}
         <div className="online-join-row"><input className="online-input room-code-input" value={roomCode} maxLength={6} placeholder="ROOM CODE" aria-label="Room code" onChange={(event) => setRoomCode(event.target.value.toUpperCase())} /><button type="button" className={`button ${hasRoomCode ? 'button-gold online-join-button' : 'button-quiet'}`} disabled={!hasRoomCode} onClick={() => onJoin(saveName(), roomCode)}>{hasRoomCode ? 'Join this game' : roomCode ? 'Join linked room' : 'Join room'}{hasRoomCode && <span>↗</span>}</button></div>
@@ -92,7 +110,7 @@ function InfoPage({ view, soundEnabled, onToggleSound, onNavigate }) {
   )
 }
 
-export default function MainMenu({ view, soundEnabled, onlineLobby, onlineNotice, onNavigate, onStart, onToggleSound, onCreateOnline, onJoinOnline, onStartOnline, onLeaveOnline }) {
+export default function MainMenu({ view, soundEnabled, onlineLobby, onlineQueue, onlineNotice, onNavigate, onStart, onToggleSound, onCreateOnline, onJoinOnline, onFindMatch, onCancelMatch, onStartOnline, onLeaveOnline }) {
   return (
     <main className={`app-shell menu-shell${view !== 'menu' ? ' subpage-shell' : ''}`}>
       <header className="menu-header"><Brand small /><span className="header-caption">CLASSIC BLOT <i /> 2 VS 2</span></header>
@@ -110,7 +128,7 @@ export default function MainMenu({ view, soundEnabled, onlineLobby, onlineNotice
           <div className="menu-divider"><span>TABLE OPTIONS</span><i /></div>
           <nav className="menu-links" aria-label="Main menu">{menuItems.map((item) => <button type="button" key={item.id} onClick={() => onNavigate(item.id)}><span className="menu-link-mark">{item.mark}</span><span>{item.label}</span><span className="menu-link-arrow">↗</span></button>)}</nav>
         </div>
-      ) : view === 'online' ? <OnlinePage lobby={onlineLobby} notice={onlineNotice} onCreate={onCreateOnline} onJoin={onJoinOnline} onStart={onStartOnline} onLeave={onLeaveOnline} /> : <InfoPage view={view} soundEnabled={soundEnabled} onToggleSound={onToggleSound} onNavigate={onNavigate} />}
+      ) : view === 'online' ? <OnlinePage lobby={onlineLobby} queue={onlineQueue} notice={onlineNotice} onCreate={onCreateOnline} onJoin={onJoinOnline} onFindMatch={onFindMatch} onCancelMatch={onCancelMatch} onStart={onStartOnline} onLeave={onLeaveOnline} /> : <InfoPage view={view} soundEnabled={soundEnabled} onToggleSound={onToggleSound} onNavigate={onNavigate} />}
       <footer className="menu-footer"><span>BAZAR BLOT</span><span>2 VS 2 · FIRST TO 501</span><button type="button" className="sound-link" onClick={onToggleSound}>{soundEnabled ? '◖ Sound on' : '◖ Sound off'}</button></footer>
     </main>
   )

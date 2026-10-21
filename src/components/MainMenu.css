@@ -483,3 +483,66 @@
     height: 81px;
   }
 }
+
+.online-find-button {
+  width: 100%;
+  min-height: 48px;
+  margin-top: 15px;
+  font-size: 13px;
+}
+
+.online-find-button span {
+  margin-left: auto;
+  font-size: 17px;
+}
+
+.matchmaking-panel h1 {
+  margin-bottom: 8px;
+}
+
+.matchmaking-status {
+  display: grid;
+  gap: 14px;
+  margin-top: 8px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.matchmaking-count {
+  color: #f2eee4;
+  font-family: Georgia, serif;
+  font-size: 32px;
+}
+
+.matchmaking-count small {
+  color: var(--gold);
+  font-family: inherit;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.matchmaking-seats {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.matchmaking-seats span {
+  height: 5px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.matchmaking-seats .matchmaking-seat-filled {
+  background: #9bc7a0;
+  box-shadow: 0 0 10px rgba(155, 199, 160, 0.3);
+}
+
+.matchmaking-status p {
+  color: #a9b1a4;
+  font-size: 11px;
+  line-height: 1.6;
+}
