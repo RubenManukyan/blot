@@ -9,14 +9,27 @@ export function evaluateHandForBid(hand, trump) {
   return trumpPower + sideAces * 1.15 + voids * 0.55 + Math.max(0, trumpCards.length - 2) * 0.8
 }
 
-export function chooseBid(hand, highestBid, random = Math.random, personality = 'measured') {
+export function recommendBid(hand, highestBid = 0) {
+  const options = SUITS
+    .map((suit) => ({ suit, strength: evaluateHandForBid(hand, suit) }))
+    .sort((left, right) => right.strength - left.strength)
+  const best = options[0]
+  const firstAvailable = availableBids(highestBid)[0]
+  const threshold = 4.4 + Math.max(0, highestBid - RULES.minimumBid) / 30
+  if (!best || !firstAvailable || best.strength < threshold) return { action: 'pass', suit: best?.suit ?? null, strength: best?.strength ?? 0 }
+  const value = RULES.minimumBid + Math.max(0, Math.floor((best.strength - threshold) / 1.6)) * RULES.bidStep
+  return { action: 'bid', value: Math.min(value, availableBids(highestBid).at(-1)), suit: best.suit, strength: best.strength }
+}
+
+export function chooseBid(hand, highestBid, random = Math.random, personality = 'measured', difficulty = 'standard') {
   const bids = availableBids(highestBid)
   if (!bids.length) return null
   const options = SUITS
     .map((suit) => ({ suit, strength: evaluateHandForBid(hand, suit) }))
     .sort((left, right) => right.strength - left.strength)
   const best = options[0]
-  const threshold = ({ bold: 3.7, patient: 5.1, measured: 4.4 }[personality] ?? 4.4) + Math.max(0, highestBid - RULES.minimumBid) / 30
+  const difficultyAdjustment = ({ easy: 1.2, standard: 0, challenging: -0.5 }[difficulty] ?? 0)
+  const threshold = ({ bold: 3.7, patient: 5.1, measured: 4.4 }[personality] ?? 4.4) + difficultyAdjustment + Math.max(0, highestBid - RULES.minimumBid) / 30
   if (best.strength < threshold || random() > Math.min(0.9, 0.48 + (best.strength - threshold) * 0.12)) return null
   const desired = RULES.minimumBid + Math.max(0, Math.floor((best.strength - threshold) / 1.6)) * RULES.bidStep
   const bid = bids.filter((value) => value <= desired).at(-1) ?? bids[0]

@@ -10,9 +10,10 @@ function cardCost(card, trump, personality) {
   return (card.suit === trump ? 40 : 0) + strength * preserveWeight
 }
 
-export function chooseCard(hand, trick, playerIndex, trump, playedCards = [], personality = 'measured') {
+export function chooseCard(hand, trick, playerIndex, trump, playedCards = [], personality = 'measured', difficulty = 'standard', random = Math.random) {
   const legal = legalCards(hand, trick, playerIndex, trump)
   if (legal.length === 1) return legal[0]
+  if (difficulty === 'easy') return legal[Math.floor(random() * legal.length)]
 
   if (!trick.length) {
     const playedIds = new Set(playedCards.map((card) => card.id))
@@ -22,8 +23,9 @@ export function chooseCard(hand, trick, playerIndex, trump, playedCards = [], pe
     return [...legal].sort((left, right) => {
       const leftThreatened = unseenCards.some((card) => card.suit === left.suit && cardStrength(card, trump) > cardStrength(left, trump))
       const rightThreatened = unseenCards.some((card) => card.suit === right.suit && cardStrength(card, trump) > cardStrength(right, trump))
-      const leftScore = (left.rank === 'A' ? 16 : left.rank === 'J' && left.suit === trump ? 20 : 0) + (leftThreatened ? 0 : 9) - cardCost(left, trump, personality) * 0.22
-      const rightScore = (right.rank === 'A' ? 16 : right.rank === 'J' && right.suit === trump ? 20 : 0) + (rightThreatened ? 0 : 9) - cardCost(right, trump, personality) * 0.22
+      const preservation = difficulty === 'challenging' ? 0.34 : 0.22
+      const leftScore = (left.rank === 'A' ? 16 : left.rank === 'J' && left.suit === trump ? 20 : 0) + (leftThreatened ? 0 : 9) - cardCost(left, trump, personality) * preservation
+      const rightScore = (right.rank === 'A' ? 16 : right.rank === 'J' && right.suit === trump ? 20 : 0) + (rightThreatened ? 0 : 9) - cardCost(right, trump, personality) * preservation
       return rightScore - leftScore
     })[0]
   }

@@ -10,14 +10,15 @@ export const PLAYER_INFO = [
   { name: 'Levon', avatar: 'L', human: false, personality: 'patient' },
 ]
 
-export function createMatch(previousScores = [0, 0], dealer = Math.floor(Math.random() * 4), round = 1) {
-  const hands = dealHands(shuffleDeck())
-  const firstBidder = (dealer + 1) % 4
+export function createMatch(previousScores = [0, 0], dealer, round = 1, random = Math.random) {
+  const dealerIndex = dealer ?? Math.floor(random() * 4)
+  const hands = dealHands(shuffleDeck(undefined, random))
+  const firstBidder = (dealerIndex + 1) % 4
   return {
     phase: 'bidding',
     players: PLAYER_INFO.map((player, index) => ({ ...player, index, team: teamForPlayer(index), hand: hands[index] })),
     scores: [...previousScores],
-    dealer,
+    dealer: dealerIndex,
     round,
     bidding: { turn: firstBidder, highest: null, consecutivePasses: 0, history: [], firstBidder },
     contract: null,
@@ -137,16 +138,16 @@ export function playCard(state, playerIndex, cardId) {
   }
 }
 
-export function takeAiTurn(state, random = Math.random) {
+export function takeAiTurn(state, random = Math.random, difficulty = 'standard') {
   if (state.phase === 'bidding' && state.players[state.bidding.turn].human === false) {
     const playerIndex = state.bidding.turn
-    const bid = chooseBid(state.players[playerIndex].hand, state.bidding.highest?.value ?? 0, random)
+    const bid = chooseBid(state.players[playerIndex].hand, state.bidding.highest?.value ?? 0, random, state.players[playerIndex].personality, difficulty)
     return submitBid(state, playerIndex, bid ? { type: 'bid', ...bid } : { type: 'pass' })
   }
   if (state.phase === 'play' && state.players[state.turn].human === false) {
     const playerIndex = state.turn
     const playedCards = state.tricksWon.flatMap((trick) => trick.plays.map((play) => play.card))
-    const card = chooseCard(state.players[playerIndex].hand, state.trickComplete ? [] : state.trick, playerIndex, state.trump, playedCards)
+    const card = chooseCard(state.players[playerIndex].hand, state.trickComplete ? [] : state.trick, playerIndex, state.trump, playedCards, state.players[playerIndex].personality, difficulty, random)
     return playCard(state, playerIndex, card.id).state
   }
   return state

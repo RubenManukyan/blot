@@ -1,18 +1,21 @@
 import { useState } from 'react'
+import { recommendBid } from '../game/bidding.js'
 import { availableBids, SUIT_NAMES, SUIT_SYMBOLS } from '../game/rules.js'
 
-export default function BiddingPanel({ state, playerIndex = 0, onBid }) {
+export default function BiddingPanel({ state, playerIndex = 0, onBid, practiceMode = false }) {
   const [suit, setSuit] = useState('hearts')
   const [selectedBid, setSelectedBid] = useState(82)
   const bids = availableBids(state.bidding.highest?.value ?? 0)
   const bidValue = bids.includes(selectedBid) ? selectedBid : bids[0]
   const humanTurn = state.bidding.turn === playerIndex
   const highest = state.bidding.highest
+  const recommendation = practiceMode && humanTurn ? recommendBid(state.players[playerIndex].hand, highest?.value ?? 0) : null
   return (
     <section className="bidding-panel" aria-label="Bidding controls">
       <div className="bidding-copy"><span className="eyebrow">AUCTION · ROUND {state.round}</span><h2>{humanTurn ? 'Your call.' : `${state.players[state.bidding.turn].name} is considering…`}</h2><p>{highest ? `${state.players[highest.playerIndex].name} holds ${highest.value} ${SUIT_NAMES[highest.suit]}.` : 'Set a contract from 82 to 162, or pass.'}</p></div>
       {humanTurn ? (
         <div className="bid-actions">
+          {recommendation && <div className="bid-coach" role="status"><strong>ANI’S BIDDING TIP</strong><span>{recommendation.action === 'bid' ? `I’d consider ${recommendation.value} ${SUIT_NAMES[recommendation.suit]}. Your hand has a few promising cards in that suit.` : 'I’d pass for now. This hand may be a little light for a safe contract.'}</span></div>}
           <div className="suit-choice" aria-label="Choose trump suit">{Object.entries(SUIT_SYMBOLS).map(([key, symbol]) => <button type="button" key={key} className={`suit-option${suit === key ? ' suit-option-active' : ''}${key === 'hearts' || key === 'diamonds' ? ' red' : ''}`} onClick={() => setSuit(key)} aria-label={SUIT_NAMES[key]} title={SUIT_NAMES[key]}>{symbol}</button>)}</div>
           <label className="bid-select-label" htmlFor="bid-value">BID</label>
           <select id="bid-value" value={bidValue ?? ''} disabled={!bids.length} onChange={(event) => setSelectedBid(Number(event.target.value))}>{bids.length ? bids.map((value) => <option key={value} value={value}>{value}</option>) : <option value="">No higher bid</option>}</select>

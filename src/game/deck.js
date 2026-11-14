@@ -1,6 +1,16 @@
 export const SUITS = ['hearts', 'diamonds', 'clubs', 'spades']
 export const RANKS = ['7', '8', '9', '10', 'J', 'Q', 'K', 'A']
 
+export function seededRandom(seed) {
+  let state = seed >>> 0 || 1
+  return () => {
+    state ^= state << 13
+    state ^= state >>> 17
+    state ^= state << 5
+    return (state >>> 0) / 0x1_0000_0000
+  }
+}
+
 export function createDeck() {
   return SUITS.flatMap((suit) => RANKS.map((rank) => ({
     id: `${suit}-${rank}`,
